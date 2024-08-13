@@ -108,43 +108,140 @@ void execution(char** arguments)
         wait(NULL);//waiting for child process to terminate
     }
 }
+//built in commands 
+//CHANGE THE CURRENT WORKING DIRECTORY
+//arguments[0] is the command ('cd').
+// arguments[1] is the target directory (if provided).
+void myCD(char** arguments)
+{
+    if (arguments[1] == NULL)
+    {
+        // Change to home directory if no argument is provided
+        // Retrieve the path of the home directory from the environment variable i used getenv/
+        char* home_dir = getenv("HOME");
+        if (home_dir == NULL)
+        {
+            fprintf(stderr, "cd: HOME environment variable not set\n");
+            return;
+        }
+        if (chdir(home_dir) != 0)
+        {
+            perror("cd");
+        }
+    }
+    else
+    {
+        // User provided a directory argument; change to the specified directory
+        // Attempt to change to the specified directory
+        if (chdir(arguments[1]) != 0)
+        {
+            perror("cd");
+        }
+    }
+}
 
-//temporary main function
+//PRINT WORKING DIRECTORY
+//I used getcwd
+void myPWD()
+{
+  char cwd[MAX_INPUT_SIZE];
+  if(getcwd(cwd,sizeof(cwd))!=NULL){
+    printf("%s\n",cwd);
+}else{
+   perror("pwd");
+}
+}
+
+//HELP COMMAND
+//Just printing all the commands and their function
+void myHelp() {
+    printf("Mshell - A simple shell implementation -\n");
+    printf("Available commands:\n");
+    printf("  cd [directory] - Change the current directory\n");
+    printf("  pwd - Print the current working directory\n");
+    printf("  help - For information about the commands\n");
+    printf("  echo [text] - Print the given text\n");
+    printf("  exit - Exit the shell\n");
+}
+
+//ECHO COMMAND
+//prints the user's input
+void myEcho(char** arguments)
+{
+  for(int i=1;arguments[i]!=NULL;i++){
+     printf("%s",arguments[i]);
+     if(arguments[i+1]!=NULL){
+       printf(" ");
+     }
+    }
+   printf("\n");
+}
+ 
+//function that will be in charge of the commands
+//this function checks the user input and decides which command to call
+int handler(char** arguments){
+    if(arguments[0]==NULL){
+        return 1; // No command 
+    }
+    if (strcmp(arguments[0], "cd") == 0) {
+        myCD(arguments);
+        return 1;
+    } else if (strcmp(arguments[0], "pwd") == 0) {
+        myPWD();
+        return 1;
+    } else if (strcmp(arguments[0], "help") == 0) {
+        myHelp();
+        return 1;
+    } else if (strcmp(arguments[0], "echo") == 0) {
+        myEcho(arguments);
+        return 1;
+    }
+    return 0; // Not a built-in command
+}        
+// main function
 int main() {
-    char* input;
-    char** args;
+    char* input;//user input 
+    char** args;//holding the command and its argument as an array of strings
+
+    //we first display the banner :)
     display_banner();
 
-    
     while (1) {
+        //we display the prompt 
         display_prompt();
+        //getting user input
         input = read_input();
-        
+
+        //handling cases where input is NULL
         if (input == NULL) {
             printf("\n");
             break;
         }
-        
+
         if (strlen(input) == 0) {
             free(input);
             continue;
         }
-        
+
+        //dividing input into commands and arguments
         args = dividing_input(input);
-        
+
+        //if the command is exit we free the memory and exit the loo[
         if (strcmp(args[0], "exit") == 0) {
             free(input);
             free(args);
             break;
         }
-        
-        execution(args);
-        
+
+        if (!handler(args)) {
+            // If handler returns 0, it means it's not a built-in command
+            // So we execute it as an external command
+            execution(args);
+        }
+
         free(input);
         free(args);
     }
-    
     return 0;
 }
-// still need to add commands to my shell
 
